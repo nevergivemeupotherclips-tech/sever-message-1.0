@@ -1,0 +1,97 @@
+let lastAnnouncement = null;
+let announcementActive = false;
+let announcementTimer = 0;
+const announcementDurationTicks = 160;
+const admins = ["stealprooo_", "SavagePotatolav2yt"];
+const rainbowColors = ["#FF0000","#FF7F00","#FFFF00","#00FF00","#0000FF","#4B0082","#8F00FF"];
+const maxLineLength = 40;
+
+function sendAnnouncement(message, senderId) {
+    lastAnnouncement = message;
+    announcementActive = true;
+    announcementTimer = announcementDurationTicks;
+
+    const lines = splitMessage(message, maxLineLength);
+    for (const pid of api.getPlayerIds()) {
+        const rainbowTextObjects = createRainbowTextObjects(lines);
+        api.setClientOption(pid, "middleTextUpper", rainbowTextObjects);
+    }
+
+    api.log(`Server announcement sent by ${api.getEntityName(senderId)}: ${message}`);
+}
+
+function splitMessage(msg, maxLength) {
+    const words = msg.split(" ");
+    const lines = [];
+    let currentLine = "";
+
+    for (const word of words) {
+        if ((currentLine + " " + word).trim().length > maxLength) {
+            lines.push(currentLine.trim());
+            currentLine = word;
+        } else {
+            currentLine += " " + word;
+        }
+    }
+    if (currentLine) lines.push(currentLine.trim());
+    return lines;
+}
+
+function createRainbowTextObjects(lines) {
+    const objects = [];
+    for (const line of lines) {
+        for (let i = 0; i < line.length; i++) {
+            objects.push({
+                str: line[i],
+                style: { color: rainbowColors[i % rainbowColors.length] }
+            });
+        }
+        objects.push({ str: "\n" });
+    }
+    return objects;
+}
+
+function onPlayerChat(playerId, msg) {
+    const name = api.getEntityName(playerId);
+    msg = msg.trim();
+    if (!msg) return;
+
+    const parts = msg.split(" ");
+    const command = parts[0].toLowerCase();
+
+    if (command === "!sever") {
+        if (!admins.includes(name)) {
+            api.sendMessage(playerId, "You do not have permission to use this command.", { color: "red" });
+            return false;
+        }
+
+        if (parts.length < 2) {
+            api.sendMessage(playerId, "Usage: !sever <message>", { color: "orange" });
+            return false;
+        }
+
+        const announcement = parts.slice(1).join(" ");
+        sendAnnouncement(announcement, playerId);
+        return false;
+    }
+}
+
+function tick() {
+    if (announcementActive) {
+        announcementTimer--;
+        if (announcementTimer <= 0) {
+            for (const pid of api.getPlayerIds()) {
+                api.setClientOption(pid, "middleTextUpper", "");
+            }
+            announcementActive = false;
+        }
+    }
+}
+
+onPlayerJoin = (playerId) => {
+    if (announcementActive && lastAnnouncement) {
+        const lines = splitMessage(lastAnnouncement, maxLineLength);
+        const rainbowTextObjects = createRainbowTextObjects(lines);
+        api.setClientOption(playerId, "middleTextUpper", rainbowTextObjects);
+    }
+};
