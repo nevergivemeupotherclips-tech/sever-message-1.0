@@ -1,5 +1,5 @@
-someone asked me to make it in a smp so i share code :D
-INFO:
-VERSION 1.0
+codes 
+      sever message /*info v1*/
+      Orbital Strike Cannon /*info v2*/
 
-
+                      
