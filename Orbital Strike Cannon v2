@@ -1,0 +1,64 @@
+/*
+    pls cerdit me discord (thanks)
+                                    */
+const R = 5; 
+let cd = {};
+
+
+function explodeAt(x, y, z) {
+  for (let dx = -R; dx <= R; dx++) {
+    for (let dy = -R; dy <= R; dy++) {      
+      for (let dz = -R; dz <= R; dz++) {
+
+        const d1 = Math.abs(dx) + Math.abs(dy) + Math.abs(dz);
+        const d2 = Math.max(Math.abs(dx), Math.abs(dy), Math.abs(dz));
+        if (d1 <= R + 3 || d2 <= R - 2) {
+          api.setBlock(x + dx, y + dy, z + dz, "Air");
+        }
+      }
+    }
+  }
+}
+
+
+
+const extraOffsets = [
+  [0, 0, 0],
+  [2, 0, 0],
+  [-2, 0, 0],
+  [0, 0, 2],
+  [0, 0, -2],
+  [1, 0, 1],
+  [-1, 0, -1]
+];
+
+
+function tick() {
+  const players = api.getPlayerIds();
+
+  players.forEach(playerId => {
+    const held = api.getHeldItem(playerId);
+    if (!held || held.name !== "Dirt") return; 
+
+
+    if (cd[playerId] > 0) {
+      cd[playerId]--;
+      return;
+    }
+
+    const pos = api.getPosition(playerId);
+    const dir = api.getPlayerFacingInfo(playerId).dir;
+
+  
+    const tx = Math.floor(pos[0] + dir[0] * 6);
+    const ty = Math.floor(pos[1]);
+    const tz = Math.floor(pos[2] + dir[2] * 6);
+
+
+    extraOffsets.forEach(offset => {
+      explodeAt(tx + offset[0], ty + offset[1], tz + offset[2]);
+    });
+
+    cd[playerId] = 2; 
+  });
+}
