@@ -1,0 +1,99 @@
+/*
+  Orbital Strike Cannon (laggy kinda)
+  VERSION 2.5
+  Credit: Discord (thanks)
+*/
+
+const HOLES = 40;        
+const RADIUS = 10;       
+const HEIGHT = 99;      
+const PROCESS_PER_TICK = 1000; 
+let strikes = [];
+
+function floorInt(n) { return Math.floor(Number(n) || 0); }
+function isBedrock(name) { return name && String(name).toLowerCase().includes("bedrock"); }
+
+onPlayerChat = (id, msg) => {
+    if (!msg.startsWith("!os")) return;
+
+    const parts = msg.split(" ");
+    if (parts.length < 4) {
+        try { api.sendMessage(id, "Usage: !os x y z", { color: "red" }); } catch(e){}
+        return;
+    }
+
+    const cx = floorInt(parts[1]);
+    const cy = floorInt(parts[2]);
+    const cz = floorInt(parts[3]);
+
+    const centers = [];
+    for (let i = 0; i < HOLES; i++) {
+        const ox = Math.floor(Math.random() * 11) - 5;
+        const oz = Math.floor(Math.random() * 11) - 5;
+        centers.push([cx + ox, cy, cz + oz]);
+    }
+
+    strikes.push({
+        player: id,
+        centers: centers,
+        holeIndex: 0,
+        dx: -RADIUS,
+        dy: -HEIGHT,
+        dz: -RADIUS,
+        finished: false
+    });
+
+    try { api.sendMessage(id, `Orbital strike queued with ${HOLES} holes`, { color: "yellow" }); } catch(e){}
+};
+
+function tick() {
+    let budget = PROCESS_PER_TICK;
+
+    for (let si = 0; si < strikes.length && budget > 0; si++) {
+        const s = strikes[si];
+        if (s.finished) continue;
+
+        while (!s.finished && budget > 0) {
+            if (s.holeIndex >= s.centers.length) {
+                s.finished = true;
+                try { api.sendMessage(s.player, "Orbital strike finished!", { color: "green" }); } catch(e){}
+                break;
+            }
+
+            const center = s.centers[s.holeIndex];
+            const cx = center[0];
+            const cy = center[1];
+            const cz = center[2];
+
+            const x = cx + s.dx;
+            const y = cy + s.dy;
+            const z = cz + s.dz;
+
+            try {
+                const block = api.getBlock(x, y, z);
+                if (block && !isBedrock(block)) {
+                    api.setBlock(x, y, z, "Air");
+                }
+            } catch(e){}
+
+            s.dz++;
+            if (s.dz > RADIUS) {
+                s.dz = -RADIUS;
+                s.dx++;
+                if (s.dx > RADIUS) {
+                    s.dx = -RADIUS;
+                    s.dy++;
+                    if (s.dy > HEIGHT) {
+                        s.dy = -HEIGHT;
+                        s.holeIndex++;
+                    }
+                }
+            }
+
+            budget--;
+        }
+    }
+    for (let i = strikes.length - 1; i >= 0; i--) {
+        if (strikes[i].finished) strikes.splice(i,1);
+    }
+}
